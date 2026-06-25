@@ -126,7 +126,7 @@ export default function App() {
     await fetchTutorFeedback(quizState, option, isCorrect);
   };
 
-  const fetchTutorFeedback = async (quiz, chosen, isCorrect) => {
+  const fetchTutorFeedback = async (quiz, chosen, isCorrect, attempt = 0) => {
     setLoadingTutor(true);
     const prompt = `Você é um tutor inteligente de um sistema educacional sobre os 48 países da Copa do Mundo 2026.
 Um aluno respondeu a uma pergunta sobre ${quiz.country.name} no eixo ${quiz.axis}.
@@ -139,25 +139,28 @@ O aluno ${isCorrect ? "ACERTOU" : "ERROU"}.
 Dê um feedback pedagógico em 2-3 frases, em português, ${isCorrect ? "parabenizando e acrescentando uma curiosidade sobre o tema" : "explicando o erro com uma dica contextual sobre " + quiz.country.name}. Seja encorajador, direto e educativo. Não use asteriscos nem markdown.`;
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
-          messages: [{ role: "user", content: prompt }],
-        }),
-      });
+      const res = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +import.meta.env.VITE_GEMINI_KEY,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+          }),
+        }
+      );
+
+      if (res.status === 429 && attempt < 2) {
+        await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+        return fetchTutorFeedback(quiz, chosen, isCorrect, attempt + 1);
+      }
+
       const data = await res.json();
-      const text = data.content?.map((b) => b.text || "").join("") || "";
-      setTutorMsg(text);
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      setTutorMsg(text || "Continue estudando! Cada pergunta te aproxima do domínio completo.");
     } catch {
       setTutorMsg(
-        "Continue estudando! Cada pergunta te aproxima do domínio completo.",
+        "Continue estudando! Cada pergunta te aproxima do domínio completo."
       );
     }
     setLoadingTutor(false);
