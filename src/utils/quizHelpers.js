@@ -1,9 +1,9 @@
 import { QUIZ_OPTIONS_COUNT } from "./constants.js";
 
 export function generateOptions(correct, allCountries, field) {
-  const pool = allCountries
-    .map((c) => field(c))
-    .filter((v) => v !== correct);
+  const pool = [
+    ...new Set(allCountries.map((c) => field(c)).filter((v) => v !== correct)),
+  ];
   const shuffled = pool
     .sort(() => Math.random() - 0.5)
     .slice(0, QUIZ_OPTIONS_COUNT - 1);
