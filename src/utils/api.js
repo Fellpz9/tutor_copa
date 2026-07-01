@@ -22,17 +22,11 @@ Dê um feedback pedagógico em 2-3 frases, em português, ${
   }. Seja encorajador, direto e educativo. Não use asteriscos nem markdown e quando encaixar, use de um exemplo resolvido.`;
 
   try {
-    const res = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
-        import.meta.env.VITE_GEMINI_KEY,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
-      },
-    );
+    const res = await fetch("/api/tutor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    });
 
     if (res.status === 429 && attempt < 2) {
       await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
@@ -40,9 +34,8 @@ Dê um feedback pedagógico em 2-3 frases, em português, ${
     }
 
     const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     return (
-      text ||
+      data.text ||
       "Continue estudando! Cada pergunta te aproxima do domínio completo."
     );
   } catch {
